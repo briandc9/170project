@@ -14,7 +14,6 @@ from student_utils import *
 """
 
 import numpy as np
-import pandas as pd
 import networkx as nx
 import student_utils as s_utils
 import utils
@@ -71,7 +70,7 @@ def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_mat
         
     # TSP on node_G
     #path = tsp_solver(node_G, starting_index)
-    tsp_path = christofedes(node_G, starting_index)
+    tsp_path = christofides(node_G, starting_index)
     #print("node_path:", tsp_path)
     
     # Output path for driver IN LOCATIONS
@@ -89,18 +88,6 @@ def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_mat
     return output_path, dropoff_mapping
 
 # Helpers --------------------------------
-
-# Convert adjacency matrix -> pd DataFrame -> networkx Graph
-def make_graph(adjacency_matrix):
-    adj = adjacency_matrix
-    
-    df = pd.DataFrame(adj)
-    df = df.replace("x", 0)
-        
-    G = nx.from_pandas_adjacency(df)
-    G.name = 'Graph from pandas adjacency matrix'
-        
-    return G
 
 # Returns adjacency dictionary of distances for each location {location: [distances to every location], ...}
 def make_dictionary(adjacency_matrix, location_indices):
@@ -197,18 +184,18 @@ def shortest_paths(G, list_of_locations, node_roots):
         
     return node_paths, node_G
 
-# Christofedes TSP Solver  
-def christofedes(G, starting_node):
+# Christofides TSP Solver  
+def christofides(G, starting_node):
     optimal_path = list()
     
     MST = nx.minimum_spanning_tree(G, weight='weight') # generates MST of graph G, using Prim's algo
-    odd_vert = [] #list containing vertices with odd degree
+    odd_vertices = [] #list containing vertices with odd degree
     
     for i in MST.nodes():
         if MST.degree(i)%2 != 0: 
-            odd_vert.append(i) #if the degree of the vertex is odd, then append it to odd_vert list
+            odd_vertices.append(i) #if the degree of the vertex is odd, then append it to odd_vertices list
             
-    minimumWeightedMatching(MST, G, odd_vert) #adds minimum weight matching edges to MST
+    minimumWeightedMatching(MST, G, odd_vertices) #adds minimum weight matching edges to MST
     
     # now MST has the Eulerian circuit
     start = starting_node
@@ -251,18 +238,20 @@ def christofedes(G, starting_node):
     return optimal_path
 
 #utility function that adds minimum weight matching edges to MST
-def minimumWeightedMatching(MST, G, odd_vert):
-    while odd_vert:
-        v = odd_vert.pop()
+def minimumWeightedMatching(MST, G, odd_vertices):
+    while odd_vertices:
+        y = odd_vertices.pop()
         weight = float("inf")
-        u = 1
+        x = 1
+
         closest = 0
-        for u in odd_vert:
-            if G[v][u]['weight'] < weight :
-                weight = G[v][u]['weight']
-                closest = u
-        MST.add_edge(v, closest, weight = weight)
-        odd_vert.remove(closest)
+        for x in odd_vertices:
+            if G[y][x]['weight'] < weight :
+                weight = G[y][x]['weight']
+                closest = x
+
+        MST.add_edge(y, closest, weight = weight)
+        odd_vertices.remove(closest)
 
 # Create output path for driver
 def make_path(list_of_locations, node_paths, tsp_path, starting_index):
@@ -385,7 +374,7 @@ def solve_all(input_directory, output_directory, params=[]):
     input_files = utils.get_files_with_extension(input_directory, 'in')
 
     for input_file in input_files:
-        if (input_file[10] == "_") and (int(input_file[7]) == 2):
+        if (input_file[8] == "_"):
             #------------
             #if (int(input_file[7:9]) % 5 == 0):
             #print(input_file)
